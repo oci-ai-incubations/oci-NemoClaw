@@ -84,6 +84,46 @@ verify_config_integrity() {
   fi
 }
 
+load_gateway_env_file() {
+  local env_file="/sandbox/.openclaw-data/.env"
+  [ -f "$env_file" ] || return 0
+
+  python3 - "$env_file" <<'PYENV'
+import pathlib
+import re
+import shlex
+import sys
+
+path = pathlib.Path(sys.argv[1])
+allowed = {
+    'BRAVE_API_KEY',
+    'EXA_API_KEY',
+    'GEMINI_API_KEY',
+    'KIMI_API_KEY',
+    'PERPLEXITY_API_KEY',
+    'XAI_API_KEY',
+}
+pattern = re.compile(r'^([A-Za-z_][A-Za-z0-9_]*)=(.*)$')
+
+for raw in path.read_text().splitlines():
+    line = raw.strip()
+    if not line or line.startswith('#'):
+        continue
+    match = pattern.match(line)
+    if not match:
+        continue
+    key, value = match.groups()
+    if key not in allowed:
+        continue
+    print(f'export {key}={shlex.quote(value)}')
+PYENV
+}
+
+configure_web_search_runtime_env() {
+  [ -n "${BRAVE_API_KEY:-}" ] || return 0
+  export OPENCLAW_BRAVE_API_KEY="${BRAVE_API_KEY}"
+}
+
 write_auth_profile() {
   if [ -z "${NVIDIA_API_KEY:-}" ]; then
     return
@@ -298,6 +338,8 @@ if [ "$(id -u)" -ne 0 ]; then
     echo "[SECURITY] Config integrity check failed — refusing to start (non-root mode)" >&2
     exit 1
   fi
+  eval "$(load_gateway_env_file)"
+  configure_web_search_runtime_env
   write_auth_profile
 
   if [ ${#NEMOCLAW_CMD[@]} -gt 0 ]; then
@@ -327,6 +369,12 @@ fi
 
 # Verify config integrity before starting anything
 verify_config_integrity
+
+# Load allowlisted gateway env keys from the writable .env file.
+# This keeps secrets out of immutable openclaw.json while avoiding execution
+# of arbitrary shell from a user-writable path.
+eval "$(load_gateway_env_file)"
+configure_web_search_runtime_env
 
 # Write auth profile as sandbox user (needs writable .openclaw-data)
 gosu sandbox bash -c "$(declare -f write_auth_profile); write_auth_profile"

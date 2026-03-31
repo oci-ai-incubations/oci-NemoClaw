@@ -1182,6 +1182,11 @@ async function validateAnthropicSelectionWithRetryMessage(
 }
 
 async function validateCustomOpenAiLikeSelection(label, endpointUrl, model, credentialEnv, helpUrl = null) {
+  const forcedApi = (process.env.NEMOCLAW_PREFERRED_INFERENCE_API || "").trim();
+  if (forcedApi) {
+    console.log(`  Using forced inference API: ${forcedApi}.`);
+    return { ok: true, api: forcedApi };
+  }
   const apiKey = getCredential(credentialEnv);
   const probe = probeOpenAiLikeEndpoint(endpointUrl, model, apiKey);
   if (probe.ok) {
@@ -2166,6 +2171,7 @@ async function createSandbox(gpu, model, provider, preferredInferenceApi = null,
   fs.copyFileSync(path.join(ROOT, "Dockerfile"), stagedDockerfile);
   copyBuildContextDir(path.join(ROOT, "nemoclaw"), path.join(buildCtx, "nemoclaw"));
   copyBuildContextDir(path.join(ROOT, "nemoclaw-blueprint"), path.join(buildCtx, "nemoclaw-blueprint"));
+  copyBuildContextDir(path.join(ROOT, "patches"), path.join(buildCtx, "patches"));
   copyBuildContextDir(path.join(ROOT, "scripts"), path.join(buildCtx, "scripts"));
 
   // Create sandbox (use -- echo to avoid dropping into interactive shell)
@@ -2188,6 +2194,10 @@ async function createSandbox(gpu, model, provider, preferredInferenceApi = null,
   // See: crates/openshell-sandbox/src/proxy.rs (header stripping),
   //      crates/openshell-router/src/backend.rs (server-side auth injection).
   const envArgs = [formatEnvAssignment("CHAT_UI_URL", chatUiUrl)];
+  const braveApiKey = process.env.BRAVE_API_KEY;
+  if (braveApiKey) {
+    envArgs.push(formatEnvAssignment("BRAVE_API_KEY", braveApiKey));
+  }
   const sandboxEnv = { ...process.env };
   delete sandboxEnv.NVIDIA_API_KEY;
   const discordToken = getCredential("DISCORD_BOT_TOKEN") || process.env.DISCORD_BOT_TOKEN;

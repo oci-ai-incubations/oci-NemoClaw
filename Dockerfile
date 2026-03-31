@@ -27,6 +27,12 @@ RUN (apt-get remove --purge -y gcc gcc-12 g++ g++-12 cpp cpp-12 make \
     && apt-get autoremove --purge -y \
     && rm -rf /var/lib/apt/lists/*
 
+# Apply a narrow web-search config shim to the pre-installed OpenClaw CLI.
+# This allows only an env-provided web-search overlay at runtime without
+# reopening general config-file mutability.
+COPY patches/apply-web-search-config-shim.js /tmp/apply-web-search-config-shim.js
+RUN node /tmp/apply-web-search-config-shim.js /usr/local/lib/node_modules/openclaw     && rm /tmp/apply-web-search-config-shim.js
+
 # Copy built plugin and blueprint into the sandbox
 COPY --from=builder /opt/nemoclaw/dist/ /opt/nemoclaw/dist/
 COPY nemoclaw/openclaw.plugin.json /opt/nemoclaw/
