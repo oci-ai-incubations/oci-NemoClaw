@@ -100,6 +100,37 @@ The following endpoint groups are allowed by default:
 
 All endpoints use TLS termination and are enforced at port 443.
 
+## Internal Service Pattern
+
+For private or internal services, do not assume that raw private-IP connectivity is the preferred integration model.
+
+The recommended pattern is:
+- ensure sandbox DNS is functioning through the sanctioned NemoClaw/OpenShell path
+- declare the internal service by hostname
+- add `allowed_ips` for the resolved private destination
+- keep the allowed binary list narrow
+- let the request travel through the sanctioned OpenShell proxy path
+
+Example:
+
+```yaml
+network_policies:
+  internal_service:
+    name: internal_service
+    endpoints:
+      - host: service.example.internal
+        port: 8787
+        access: full
+        allowed_ips:
+          - 10.0.0.150
+    binaries:
+      - path: /usr/bin/curl
+```
+
+Operational note:
+- when using the current NemoClaw setup flow, post-create DNS conditioning may still be required for fresh sandboxes
+- see `scripts/setup-dns-proxy.sh`
+
 ### Inference
 
 The baseline policy allows only the `local` inference route. External inference
