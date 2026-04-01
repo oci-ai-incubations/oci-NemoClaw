@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+preset:
+  name: oci-broker-internal
+  description: "Internal OCI broker access through the sanctioned proxy path"
+
+network_policies:
+  oci_broker:
+    name: oci_broker
+    endpoints:
+      - host: nemoswarm-broker-poc.subnet03231354.vcn03231354.oraclevcn.com
+        port: 8787
+        access: full
+        allowed_ips:
+          - 10.0.0.150
+    binaries:
+      - path: /usr/bin/curl

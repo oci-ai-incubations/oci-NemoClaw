@@ -110,6 +110,7 @@ Available presets:
 | `pypi` | Python Package Index |
 | `slack` | Slack API and webhooks |
 | `telegram` | Telegram Bot API |
+| `oci-broker-internal` | Example internal broker access using hostname + `allowed_ips` |
 
 To apply a preset to a running sandbox, pass it as a policy file:
 
