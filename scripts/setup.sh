@@ -316,6 +316,21 @@ fi
 info "Setting up sandbox DNS proxy..."
 bash "$SCRIPT_DIR/setup-dns-proxy.sh" nemoclaw "$SANDBOX_NAME" 2>&1 || warn "DNS proxy setup failed (sandbox DNS may not work)"
 
+# 6b. Optional internal-service policy bootstrap.
+# If a deployment needs access to a private/internal service, apply the
+# sanctioned hostname + allowed_ips policy shape immediately after DNS is
+# working so the sandbox uses the supported proxy path instead of raw IP
+# connectivity assumptions.
+if [ -n "${NEMOCLAW_INTERNAL_SERVICE_HOST:-}" ] && [ -n "${NEMOCLAW_INTERNAL_SERVICE_PORT:-}" ] && [ -n "${NEMOCLAW_INTERNAL_SERVICE_IP:-}" ]; then
+  info "Applying internal service policy for ${NEMOCLAW_INTERNAL_SERVICE_HOST}:${NEMOCLAW_INTERNAL_SERVICE_PORT}..."
+  bash "$SCRIPT_DIR/apply-internal-service-policy.sh" nemoclaw "$SANDBOX_NAME" \
+    "$NEMOCLAW_INTERNAL_SERVICE_HOST" \
+    "$NEMOCLAW_INTERNAL_SERVICE_PORT" \
+    "$NEMOCLAW_INTERNAL_SERVICE_IP" \
+    "${NEMOCLAW_INTERNAL_SERVICE_BINARY:-/usr/bin/curl}" 2>&1 \
+    || warn "Internal service policy bootstrap failed"
+fi
+
 # 7. Done
 echo ""
 info "Setup complete!"
